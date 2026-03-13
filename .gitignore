@@ -1,0 +1,23 @@
+notepad D:\KA_Final\backend\.gitignore
+```
+
+Paste exactly this and save:
+```
+# Secret keys - never upload these
+.env
+
+# Python cache files - not needed
+__pycache__/
+*.pyc
+*.pyo
+
+# Temporary audio files created during recording
+temp_*.wav
+temp_*.mp3
+
+# Virtual environment folder
+venv/
+.venv/
+
+# VS Code settings
+.vscode/
