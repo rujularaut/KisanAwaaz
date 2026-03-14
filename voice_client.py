@@ -118,7 +118,7 @@ def main():
         try:
             input("\n▶  Press Enter to speak  (Ctrl+C to quit) … ")
         except KeyboardInterrupt:
-            print("\n👋  Goodbye!")
+            print("\n 🙏  धन्यवाद!")
             break
 
         wav = record_from_mic()
