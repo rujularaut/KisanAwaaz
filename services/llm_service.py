@@ -1,5 +1,6 @@
 """
-services/llm_service.py — Entity extraction using Sarvam AI
+services/llm_service.py — Entity extraction using Sarvam AI (sarvam-m)
+sarvam-m is faster and more reliable than sarvam-105b for this task.
 """
 
 import re
@@ -16,8 +17,15 @@ logger = logging.getLogger(__name__)
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
 LLM_URL = "https://api.sarvam.ai/v1/chat/completions"
 
+MAX_RETRIES = 2
+TIMEOUT     = 30
+
 
 def extract_entities(transcript: str) -> dict:
+    """
+    Extract commodity, market, state from a Hindi farmer query.
+    Returns a clean dict always.
+    """
     if not transcript or not transcript.strip():
         return {"commodity": "", "market": "", "state": ""}
 
@@ -26,10 +34,9 @@ def extract_entities(transcript: str) -> dict:
         "Content-Type": "application/json"
     }
 
-    prompt = f"""
-Extract the following fields from the farmer query.
+    prompt = f"""Extract the following fields from the farmer query.
 
-Return ONLY valid JSON. No explanation. No markdown.
+Return ONLY valid JSON. No explanation. No markdown. No <think> tags.
 
 Fields:
 - commodity  (crop/vegetable name in Hindi)
@@ -38,55 +45,69 @@ Fields:
 
 If a field is not mentioned, return empty string "".
 
-Farmer query:
-{transcript}
+Examples:
+Input: "बड़वानी मंडी में टमाटर का भाव क्या है?"
+Output: {{"commodity": "टमाटर", "market": "बड़वानी", "state": ""}}
 
-Output format:
-{{
-  "commodity": "",
-  "market": "",
-  "state": ""
-}}
-"""
+Input: "गुजरात में सूरत मंडी में आलू का दाम बताओ"
+Output: {{"commodity": "आलू", "market": "सूरत", "state": "गुजरात"}}
+
+Farmer query: {transcript}
+
+Output:"""
 
     payload = {
-        "model": "sarvam-105b",
+        "model": "sarvam-m",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0
     }
 
-    try:
-        response = requests.post(LLM_URL, headers=headers, json=payload, timeout=60)
-        result = response.json()
-        logger.debug("LLM raw response: %s", result)
-        print("LLM raw response:", result)
-    except Exception as e:
-        logger.error("Sarvam API call failed: %s", e)
-        return {"commodity": "", "market": "", "state": ""}
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            print(f"🔄  LLM attempt {attempt}/{MAX_RETRIES} …")
+            response = requests.post(
+                LLM_URL,
+                headers=headers,
+                json=payload,
+                timeout=TIMEOUT
+            )
+            result = response.json()
 
-    if "choices" not in result:
-        logger.error("Unexpected API response: %s", result)
-        return {"commodity": "", "market": "", "state": ""}
+            if "choices" not in result:
+                print(f"⚠️  Unexpected response: {result}")
+                continue
 
-    content = result["choices"][0]["message"]["content"].strip()
-    content = re.sub(r"```(?:json)?", "", content).replace("```", "").strip()
+            content = result["choices"][0]["message"]["content"].strip()
 
-    json_match = re.search(r"\{.*?\}", content, re.DOTALL)
-    if not json_match:
-        logger.error("No JSON found in LLM content: %s", content)
-        return {"commodity": "", "market": "", "state": ""}
+            # Strip <think>...</think> tags if model includes reasoning
+            content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
 
-    try:
-        entities = json.loads(json_match.group())
-    except json.JSONDecodeError as e:
-        logger.error("JSON parse error: %s | content: %s", e, content)
-        return {"commodity": "", "market": "", "state": ""}
+            # Strip markdown fences
+            content = re.sub(r"```(?:json)?", "", content).replace("```", "").strip()
 
-    return {
-        "commodity": str(entities.get("commodity") or "").strip(),
-        "market":    str(entities.get("market")    or "").strip(),
-        "state":     str(entities.get("state")     or "").strip(),
-    }
+            print(f"📝  LLM content: {content}")
+
+            json_match = re.search(r"\{.*?\}", content, re.DOTALL)
+            if not json_match:
+                print(f"⚠️  No JSON found in: {content}")
+                continue
+
+            entities = json.loads(json_match.group())
+            result_dict = {
+                "commodity": str(entities.get("commodity") or "").strip(),
+                "market":    str(entities.get("market")    or "").strip(),
+                "state":     str(entities.get("state")     or "").strip(),
+            }
+            print(f"✅  LLM succeeded on attempt {attempt}")
+            return result_dict
+
+        except requests.exceptions.Timeout:
+            print(f"⏱️  Attempt {attempt} timed out after {TIMEOUT}s")
+        except Exception as e:
+            print(f"❌  Attempt {attempt} failed: {e}")
+
+    print("❌  All LLM attempts failed. Returning empty entities.")
+    return {"commodity": "", "market": "", "state": ""}
 
 
 def extract_query_entities(transcript: str) -> dict:
