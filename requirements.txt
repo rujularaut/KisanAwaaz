@@ -1,6 +1,9 @@
 fastapi
-uvicorn
-requests
-python-multipart
-pydantic
+uvicorn[standard]
 python-dotenv
+requests
+sounddevice
+soundfile
+numpy
+pygame
+anthropic
