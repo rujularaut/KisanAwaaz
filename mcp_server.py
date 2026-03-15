@@ -47,7 +47,7 @@ def execute_tool(tool_name: str, tool_args: dict) -> dict:
     Execute the tool requested by the LLM and return the result.
     This is the MCP server's core — bridges LLM decisions to real actions.
     """
-    print(f"⚙️   MCP executing tool : {tool_name}")
+    print(f"   MCP executing tool : {tool_name}")
     print(f"    Arguments          : {tool_args}")
 
     # ── Tool 1: get_mandi_price ──────────────────────────────────────────

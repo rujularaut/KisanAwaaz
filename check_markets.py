@@ -48,4 +48,4 @@ def find_markets_for_commodity(commodity: str):
         market = r.get("market", "").replace(" APMC","").replace("(F&V)","").strip()
         print(f"  {market} मंडी में {commodity} का भाव क्या है?")
 
-find_markets_for_commodity("Potato")
+find_markets_for_commodity("Wheat")

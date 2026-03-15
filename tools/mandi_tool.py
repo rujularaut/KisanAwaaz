@@ -9,6 +9,7 @@ import requests
 import os
 from difflib import SequenceMatcher
 from dotenv import load_dotenv
+import pandas as pd
 
 load_dotenv()
 
@@ -178,6 +179,67 @@ STATE_MAP = {
     "उत्तराखण्ड": "Uttarakhand", "दिल्ली": "Delhi",
 }
 
+CSV_PATH = "data/mandi_15mar2026.csv"
+_csv_df  = None
+
+def _load_csv():
+    global _csv_df
+    if _csv_df is not None:
+        return _csv_df
+    if not os.path.exists(CSV_PATH):
+        print(f"⚠️  CSV not found at {CSV_PATH}")
+        return None
+    try:
+        df = pd.read_csv(CSV_PATH)
+        df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
+        df = df.rename(columns={
+            "min_x0020_price":   "min_price",
+            "max_x0020_price":   "max_price",
+            "modal_x0020_price": "modal_price",
+            "arrival_date":      "arrival_date",
+        })
+        _csv_df = df
+        print(f"✅  CSV loaded: {len(df)} records")
+        return _csv_df
+    except Exception as e:
+        print(f"❌  CSV load failed: {e}")
+        return None
+
+def _search_csv(commodity_en: str, market_en: str) -> dict | None:
+    df = _load_csv()
+    if df is None:
+        return None
+    print(f"📂  Searching CSV: commodity='{commodity_en}', market='{market_en}'")
+    matches = df[df["commodity"].str.lower() == commodity_en.lower()]
+    if matches.empty:
+        matches = df[df["commodity"].str.lower().str.contains(commodity_en.lower(), na=False)]
+    if matches.empty:
+        print(f"❌  '{commodity_en}' not in CSV")
+        return None
+    if market_en:
+        market_matches = matches[matches["market"].str.lower().str.contains(market_en.lower(), na=False)]
+        if not market_matches.empty:
+            row = market_matches.iloc[0]
+            print(f"✅  CSV match: {row['market']} | ₹{row['modal_price']}")
+            return _csv_row_to_result(row)
+        print(f"❌  Market '{market_en}' not found in CSV")
+        return None
+    # No market specified — return first record
+    row = matches.iloc[0]
+    print(f"✅  CSV first match: {row['market']} | ₹{row['modal_price']}")
+    return _csv_row_to_result(row)
+
+
+def _csv_row_to_result(row) -> dict:
+    return {
+        "commodity":   row.get("commodity"),
+        "market":      row.get("market"),
+        "state":       row.get("state"),
+        "min_price":   row.get("min_price"),
+        "max_price":   row.get("max_price"),
+        "modal_price": row.get("modal_price"),
+        "date":        row.get("arrival_date", "15/03/2026"),
+    }
 
 def _sarvam_translate(hindi_text: str) -> str:
     """Translate Hindi to English using Sarvam — fallback for unknown commodities."""
@@ -273,13 +335,17 @@ def get_mandi_price(commodity: str, market: str, state: str) -> dict:
         print(f"  Fast path ({market_en}): {len(records)} records")
         if records:
             return _build_result(records[0])
-        print(f"  No exact match for '{market_en}', trying fuzzy …")
+        print(f"  No exact match for '{market_en}'")
 
     # ── Fallback: fetch 100 records and fuzzy match ───────────────────────
     records = _fetch({**base_params, "limit": 100})
     print(f"  Fallback: fetched {len(records)} records")
 
     if not records:
+        print(f"⚠️  API returned nothing — trying CSV backup …")
+        csv_result = _search_csv(commodity_en, market_en)
+        if csv_result:
+            return csv_result
         return {"error": "No mandi data found", "commodity": commodity_en}
 
     if market_en:
@@ -294,7 +360,11 @@ def get_mandi_price(commodity: str, market: str, state: str) -> dict:
                   f"(score: {best_score:.2f})")
             return _build_result(best_record)
 
-        print(f"❌  Market '{market_en}' not found in today's dataset")
+        print(f"⚠️  Market not found in API — trying CSV backup …")
+        csv_result = _search_csv(commodity_en, market_en)
+        if csv_result:
+            return csv_result
+        print(f"❌  Market '{market_en}' not found in API or CSV")
         return {
             "error": "Market not found",
             "commodity": commodity_en,
