@@ -1,5 +1,8 @@
 """
 tools/mandi_tool.py — Fetch mandi prices from Agmarknet government API
+
+Commodity names verified directly from the actual dataset.
+Sarvam Translate used as fallback for commodities not in the map.
 """
 
 import requests
@@ -10,94 +13,153 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DATA_GOV_API_KEY = os.getenv("DATA_GOV_API_KEY")
-BASE_URL = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
+SARVAM_API_KEY   = os.getenv("SARVAM_API_KEY")
+BASE_URL         = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
+TRANSLATE_URL    = "https://api.sarvam.ai/translate"
 
-# ── Hindi → English commodity map ────────────────────────────────────────────
+# ── Hindi → EXACT English commodity name as used in Agmarknet dataset ────────
+# All names verified from actual dataset records
 COMMODITY_MAP = {
-    "टमाटर": "Tomato", "आलू": "Potato", "प्याज": "Onion",
-    "लहसुन": "Garlic", "अदरक": "Ginger", "गोभी": "Cauliflower",
-    "फूलगोभी": "Cauliflower", "पत्तागोभी": "Cabbage", "बैंगन": "Brinjal",
-    "भिंडी": "Bhindi(Ladies Finger)", "भिण्डी": "Bhindi(Ladies Finger)",
-    "करेला": "Bitter Gourd", "लौकी": "Bottle Gourd", "तोरई": "Ridgeguard(Tori)",
-    "मटर": "Peas", "मेथी": "Methi(Leaves)", "पालक": "Spinach",
-    "धनिया": "Coriander(Leaves)", "मिर्च": "Green Chilli",
-    "हरी मिर्च": "Green Chilli", "लाल मिर्च": "Dry Chillies",
-    "मूली": "Raddish", "गाजर": "Carrot", "शिमला मिर्च": "Capsicum",
-    "कद्दू": "Pumpkin", "परवल": "Pointed Gourd (Parval)", "कटहल": "Jack Fruit",
-    "केला": "Banana", "सेब": "Apple", "आम": "Mango", "अंगूर": "Grapes",
-    "संतरा": "Mosambi(Sweet Lime)", "मौसमी": "Mosambi(Sweet Lime)",
-    "पपीता": "Papaya", "अनार": "Pomegranate", "तरबूज": "Water Melon",
-    "खरबूजा": "Musk Melon", "नींबू": "Lemon", "अमरूद": "Guava",
-    "नाशपाती": "Pear", "अनानास": "Pineapple", "चीकू": "Sapota(Chiku)",
-    "लीची": "Litchi", "गेहूं": "Wheat", "चावल": "Rice",
-    "धान": "Paddy(Dhan)", "मक्का": "Maize",
-    "बाजरा": "Bajra(Pearl Millet/Cumbu)", "ज्वार": "Jowar(Sorghum)",
-    "चना": "Gram", "मसूर": "Masur Dal", "मूंग": "Moong (Whole)",
-    "उड़द": "Black Gram (Urd Beans)(Whole)",
-    "अरहर": "Arhar (Tur/Red Gram)(Whole)", "सोयाबीन": "Soyabean",
-    "सरसों": "Mustard", "मूंगफली": "Groundnut", "कपास": "Cotton",
-    "गन्ना": "Sugarcane", "हल्दी": "Turmeric", "जीरा": "Cumin Seed(Jeera)",
+    # Vegetables
+    "टमाटर":       "Tomato",
+    "आलू":         "Potato",
+    "प्याज":       "Onion",
+    "हरा प्याज":   "Onion Green",
+    "लहसुन":       "Garlic",
+    "अदरक":        "Ginger(Green)",
+    "सूखा अदरक":   "Ginger(Dry)",
+    "गोभी":        "Cauliflower",
+    "फूलगोभी":     "Cauliflower",
+    "पत्तागोभी":   "Cabbage",
+    "बैंगन":       "Brinjal",
+    "भिंडी":       "Bhindi(Ladies Finger)",
+    "भिण्डी":      "Bhindi(Ladies Finger)",
+    "करेला":       "Bitter gourd",
+    "लौकी":        "Bottle gourd",
+    "तोरई":        "Ridgeguard(Tori)",
+    "मटर":         "Peas Wet",
+    "हरी मटर":     "Green Peas",
+    "मेथी":        "Methi(Leaves)",
+    "पालक":        "Spinach",
+    "धनिया":       "Coriander(Leaves)",
+    "मिर्च":       "Green Chilli",
+    "हरी मिर्च":   "Green Chilli",
+    "लाल मिर्च":   "Dry Chillies",
+    "मूली":        "Raddish",
+    "गाजर":        "Carrot",
+    "शिमला मिर्च": "Capsicum",
+    "कद्दू":       "Pumpkin",
+    "परवल":        "Pointed gourd(Parval)",
+    "कटहल":        "Jack Fruit(Ripe)",
+    "कुंदरू":      "Little gourd(Kundru)",
+    "टिंडा":       "Tinda",
+    "खीरा":        "Cucumbar(Kheera)",
+    "चुकंदर":      "Beetroot",
+    "शलजम":        "Turnip",
+    "सहजन":        "Drumstick",
+    "अरबी":        "Colacasia",
+    "कच्चा केला":  "Banana - Green",
+    "कच्चा आम":    "Mango(Raw-Ripe)",
+    "शकरकंद":      "Sweet Potato",
+    "जिमीकंद":     "Elephant Yam(Suran)/Amorphophallus",
+    "रतालू":       "Yam(Ratalu)",
+    "कचालू":       "Colacasia",
+    "सर्पगुर्दा":  "Snakeguard",
+    "तरोई":        "Ridgeguard(Tori)",
+    "कद्दू":       "Ashgourd",
+    "पेठा":        "Ashgourd",
+    "टमाटर":       "Tomato",
+    "चवली":        "Cowpea(Veg)",
+    "ग्वार":       "Guar",
+    "सेम":         "Beans",
+    "फली":         "Beans",
+    "चौलाई":       "Amaranthus",
+    "पुदीना":      "Mint(Pudina)",
+    "हल्दी":       "Turmeric",
+    # Fruits
+    "केला":        "Banana",
+    "सेब":         "Apple",
+    "आम":          "Mango",
+    "अंगूर":       "Grapes",
+    "संतरा":       "Orange",
+    "मौसमी":       "Mousambi(Sweet Lime)",
+    "मोसम्बी":     "Mousambi(Sweet Lime)",
+    "पपीता":       "Papaya",
+    "अनार":        "Pomegranate",
+    "तरबूज":       "Water Melon",
+    "खरबूजा":      "Karbuja(Musk Melon)",
+    "नींबू":       "Lemon",
+    "नीबू":        "Lime",
+    "अमरूद":       "Guava",
+    "नाशपाती":     "Pear",
+    "अनानास":      "Pineapple",
+    "चीकू":        "Chikoos(Sapota)",
+    "सपोटा":       "Chikoos(Sapota)",
+    "लीची":        "Litchi",
+    "किन्नू":      "Kinnow",
+    "कीवी":        "Kiwi Fruit",
+    "नारियल":      "Coconut",
+    "कच्चा नारियल":"Tender Coconut",
+    "काली मिर्च":  "Black pepper",
+    "इमली":        "Tamarind Fruit",
+    "आंवला":       "Amla(Nelli Kai)",
+    "स्ट्रॉबेरी":  "Strawberry",
+    # Grains & Pulses
+    "गेहूं":       "Wheat",
+    "चावल":        "Rice",
+    "धान":         "Paddy(Common)",
+    "मक्का":       "Maize",
+    "बाजरा":       "Bajra(Pearl Millet/Cumbu)",
+    "ज्वार":       "Jowar(Sorghum)",
+    "जौ":          "Barley(Jau)",
+    "चना":         "Bengal Gram(Gram)(Whole)",
+    "मसूर":        "Masur Dal",
+    "मसूर दाल":    "Masur Dal",
+    "मूंग":        "Green Gram(Moong)(Whole)",
+    "मूंग दाल":    "Green Gram Dal(Moong Dal)",
+    "उड़द":        "Black Gram(Urd Beans)(Whole)",
+    "उड़द दाल":    "Black Gram Dal(Urd Dal)",
+    "अरहर":        "Arhar(Tur/Red Gram)(Whole)",
+    "तुवर दाल":    "Arhar Dal(Tur Dal)",
+    "सोयाबीन":     "Soyabean",
+    "सरसों":       "Mustard",
+    "मूंगफली":     "Groundnut",
+    "राई":         "Mustard",
+    "ग्वार":       "Guar",
+    # Cash crops & others
+    "कपास":        "Cotton",
+    "गन्ना":       "Sugarcane",
+    "जीरा":        "Cummin Seed(Jeera)",
+    "हल्दी":       "Turmeric",
+    "सुपारी":      "Arecanut(Betelnut/Supari)",
+    "काजू":        "Cashewnuts",
+    "कॉफी":        "Coffee",
+    "रबर":         "Rubber",
+    "गुड़":        "Gur(Jaggery)",
+    "मछली":        "Fish",
+    "मशरूम":       "Mashrooms",
+    "मकई":         "Maize",
 }
 
 # ── Hindi → EXACT English market name as in dataset ──────────────────────────
-# Use check_markets.py to verify exact names for any new city
 MARKET_MAP = {
-    # Maharashtra (verified from dataset)
-    "अलीबाग": "Alibagh APMC",
-    "मुरुड": "Murud APMC",
-    # Madhya Pradesh
-    "इंदौर": "Indore",
-    "भोपाल": "Bhopal",
-    "बड़वानी": "Badwani",
-    "ग्वालियर": "Gwalior",
-    "जबलपुर": "Jabalpur",
-    "रतलाम": "Ratlam",
-    "उज्जैन": "Ujjain",
-    "देवास": "Dewas",
-    "मंदसौर": "Mandsaur",
-    # Rajasthan
-    "जयपुर": "Jaipur",
-    "जोधपुर": "Jodhpur",
-    "उदयपुर": "Udaipur",
-    "कोटा": "Kota",
-    "अजमेर": "Ajmer",
-    "अलवर": "Alwar",
-    "बीकानेर": "Bikaner",
-    "श्रीगंगानगर": "Sriganganagar",
-    # Uttar Pradesh
-    "लखनऊ": "Lucknow",
-    "कानपुर": "Kanpur",
-    "वाराणसी": "Varanasi",
-    "आगरा": "Agra",
-    "मेरठ": "Meerut",
-    "गोरखपुर": "Gorakhpur",
-    "इलाहाबाद": "Allahabad",
-    "प्रयागराज": "Prayagraj",
-    # Delhi
-    "दिल्ली": "Delhi",
-    # Gujarat
-    "सूरत": "Surat",
-    "अहमदाबाद": "Ahmedabad",
-    # Punjab / Haryana
-    "अमृतसर": "Amritsar",
-    "लुधियाना": "Ludhiana",
-    "चंडीगढ़": "Chandigarh",
-    "करनाल": "Karnal",
-    "हिसार": "Hisar",
-    "सोनीपत": "Sonipat",
-    # Uttarakhand
-    "हरिद्वार": "Haridwar Union APMC",
-    "देहरादून": "Dehradun",
-    # Other states
-    "पटना": "Patna",
-    "रांची": "Ranchi",
-    "हैदराबाद": "Hyderabad",
-    "बेंगलुरु": "Bangalore",
-    "चेन्नई": "Chennai",
-    "कोलकाता": "Kolkata",
-    "रायपुर": "Raipur",
-    "शिमला": "Shimla",
-    "जम्मू": "Jammu",
+    "अलीबाग": "Alibagh APMC", "मुरुड": "Murud APMC",
+    "इंदौर": "Indore", "भोपाल": "Bhopal", "बड़वानी": "Badwani",
+    "ग्वालियर": "Gwalior", "जबलपुर": "Jabalpur", "रतलाम": "Ratlam",
+    "उज्जैन": "Ujjain", "देवास": "Dewas", "मंदसौर": "Mandsaur",
+    "जयपुर": "Jaipur", "जोधपुर": "Jodhpur", "उदयपुर": "Udaipur",
+    "कोटा": "Kota", "अजमेर": "Ajmer", "अलवर": "Alwar",
+    "बीकानेर": "Bikaner", "श्रीगंगानगर": "Sriganganagar",
+    "लखनऊ": "Lucknow", "कानपुर": "Kanpur", "वाराणसी": "Varanasi",
+    "आगरा": "Agra", "मेरठ": "Meerut", "गोरखपुर": "Gorakhpur",
+    "इलाहाबाद": "Allahabad", "प्रयागराज": "Prayagraj",
+    "दिल्ली": "Delhi", "सूरत": "Surat", "अहमदाबाद": "Ahmedabad",
+    "अमृतसर": "Amritsar", "लुधियाना": "Ludhiana", "चंडीगढ़": "Chandigarh",
+    "करनाल": "Karnal", "हिसार": "Hisar", "सोनीपत": "Sonipat",
+    "हरिद्वार": "Haridwar Union APMC", "देहरादून": "Dehradun",
+    "पटना": "Patna", "रांची": "Ranchi", "हैदराबाद": "Hyderabad",
+    "बेंगलुरु": "Bangalore", "चेन्नई": "Chennai", "कोलकाता": "Kolkata",
+    "रायपुर": "Raipur", "शिमला": "Shimla", "जम्मू": "Jammu",
 }
 
 # ── Hindi → English state map ─────────────────────────────────────────────────
@@ -117,21 +179,65 @@ STATE_MAP = {
 }
 
 
+def _sarvam_translate(hindi_text: str) -> str:
+    """Translate Hindi to English using Sarvam — fallback for unknown commodities."""
+    try:
+        resp = requests.post(
+            TRANSLATE_URL,
+            headers={"api-subscription-key": SARVAM_API_KEY},
+            json={
+                "input":                hindi_text,
+                "source_language_code": "hi-IN",
+                "target_language_code": "en-IN",
+                "model":                "mayura:v1",
+                "mode":                 "formal"
+            },
+            timeout=10
+        )
+        translated = resp.json().get("translated_text", "").strip()
+        print(f"🌐  Sarvam Translate: '{hindi_text}' → '{translated}'")
+        return translated or hindi_text.capitalize()
+    except Exception as e:
+        print(f"⚠️  Sarvam Translate failed: {e}")
+        return hindi_text.capitalize()
+
+
 def _translate_commodity(commodity: str) -> str:
+    """
+    Translate Hindi commodity to English.
+    1. Sarvam Translate first (dynamic, no hardcoding)
+    2. COMMODITY_MAP as fallback if translate fails or returns empty
+    """
+    # Step 1: Try Sarvam Translate
+    translated = _sarvam_translate(commodity.strip())
+    if translated and translated != commodity.strip().capitalize():
+        return translated
+
+    # Step 2: Fallback to COMMODITY_MAP
+    print(f"⚠️  Sarvam Translate failed — falling back to COMMODITY_MAP")
     en = COMMODITY_MAP.get(commodity.strip())
-    if not en:
-        for hindi, english in COMMODITY_MAP.items():
-            if hindi in commodity:
-                return english
-        return commodity.strip().capitalize()
-    return en
+    if en:
+        return en
+    for hindi, english in COMMODITY_MAP.items():
+        if hindi in commodity:
+            return english
+
+    # Step 3: Last resort — return as-is
+    return commodity.strip().capitalize()
 
 
 def _translate_market(market: str) -> str:
     m = market.strip()
-    for suffix in ["मंडी", "मण्डी"]:
+    # Strip common Hindi market suffixes
+    for suffix in ["मंडी", "मण्डी", "एपीएमसी", "APMC"]:
         m = m.replace(suffix, "").strip()
-    return MARKET_MAP.get(m.strip(), m.strip().capitalize())
+    # Check map first
+    mapped = MARKET_MAP.get(m.strip())
+    if mapped:
+        return mapped
+    # Use Sarvam Translate for unknown markets
+    translated = _sarvam_translate(m.strip())
+    return translated if translated else m.strip().capitalize()
 
 
 def _similarity(a: str, b: str) -> float:
@@ -152,7 +258,7 @@ def get_mandi_price(commodity: str, market: str, state: str) -> dict:
     commodity_en = _translate_commodity(commodity)
     market_en    = _translate_market(market) if market else ""
 
-    print(f"🔄  Normalized → commodity: {commodity_en}, market: {market_en}")
+    print(f"  Normalized → commodity: {commodity_en}, market: {market_en}")
 
     base_params = {
         "api-key":            DATA_GOV_API_KEY,
@@ -161,17 +267,17 @@ def get_mandi_price(commodity: str, market: str, state: str) -> dict:
         "limit":              10,
     }
 
-    # ── Fast path: direct market filter ─────────────────────────────────
+    # ── Fast path: direct market filter ──────────────────────────────────
     if market_en:
         records = _fetch({**base_params, "filters[market]": market_en})
-        print(f"📄  Fast path ({market_en}): {len(records)} records")
+        print(f"  Fast path ({market_en}): {len(records)} records")
         if records:
             return _build_result(records[0])
-        print(f"⚠️  No exact match for '{market_en}', trying fuzzy …")
+        print(f"  No exact match for '{market_en}', trying fuzzy …")
 
-    # ── Fallback: fetch 100 records and fuzzy match ──────────────────────
+    # ── Fallback: fetch 100 records and fuzzy match ───────────────────────
     records = _fetch({**base_params, "limit": 100})
-    print(f"📄  Fallback: fetched {len(records)} records")
+    print(f"  Fallback: fetched {len(records)} records")
 
     if not records:
         return {"error": "No mandi data found", "commodity": commodity_en}
@@ -183,15 +289,24 @@ def get_mandi_price(commodity: str, market: str, state: str) -> dict:
             if score > best_score:
                 best_score, best_record = score, record
 
-        if best_record:
-            print(f"🔍  Best fuzzy match: '{best_record.get('market')}' "
+        if best_record and best_score >= 0.65:
+            print(f"🔍  Fuzzy match: '{best_record.get('market')}' "
                   f"(score: {best_score:.2f})")
-            if best_score >= 0.35:
-                return _build_result(best_record)
+            return _build_result(best_record)
 
-        print("⚠️  No good market match — using first available record")
+        print(f"❌  Market '{market_en}' not found in today's dataset")
+        return {
+            "error": "Market not found",
+            "commodity": commodity_en,
+            "market": market_en
+        }
 
-    return _build_result(records[0])
+    # No market specified — return first available record
+    if records:
+        print(f"ℹ️  No market specified — returning first available record")
+        return _build_result(records[0])
+
+    return {"error": "No mandi data found", "commodity": commodity_en}
 
 
 def _build_result(record: dict) -> dict:

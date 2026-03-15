@@ -30,7 +30,7 @@ def record_from_mic() -> io.BytesIO:
     silent_chunks  = 0
     speech_started = False
 
-    print("\n🎤  Listening … speak your query")
+    print("\n  Listening … speak your query")
 
     with sd.InputStream(samplerate=SAMPLERATE, channels=1, dtype="int16") as stream:
         for _ in range(max_chunks):
@@ -47,13 +47,13 @@ def record_from_mic() -> io.BytesIO:
                 frames.append(data.copy())
 
             if speech_started and silent_chunks >= need_silent_chunks:
-                print("🔇  Done speaking — processing …")
+                print("  Done speaking — processing …")
                 break
         else:
             if not speech_started:
-                print("⚠️  No speech detected. Lower THRESHOLD if needed.")
+                print("  No speech detected. Lower THRESHOLD if needed.")
                 sys.exit(1)
-            print("⏱️  Max time reached — processing …")
+            print("  Max time reached — processing …")
 
     audio = np.concatenate(frames, axis=0)
     print(f"✅  Recorded {len(audio)/SAMPLERATE:.1f}s")
@@ -67,7 +67,7 @@ def record_from_mic() -> io.BytesIO:
 # ── API call ─────────────────────────────────────────────────────────────────
 
 def query_api(wav_buf: io.BytesIO) -> bytes:
-    print("📡  Sending to server …")
+    print("  Sending to server …")
     try:
         resp = requests.post(
             API_URL,
@@ -92,7 +92,7 @@ def query_api(wav_buf: io.BytesIO) -> bytes:
 
 def play_audio(wav_bytes: bytes) -> None:
     if not wav_bytes or len(wav_bytes) < 100:
-        print("⚠️  No audio received — check server logs.")
+        print("  No audio received — check server logs.")
         return
 
     print("🔊  Playing response …")
@@ -103,14 +103,14 @@ def play_audio(wav_bytes: bytes) -> None:
         sd.wait()
         print("✅  Done.\n")
     except Exception as e:
-        print(f"⚠️  Playback error: {e}")
+        print(f"  Playback error: {e}")
 
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
 def main():
     print("=" * 52)
-    print("   🌾  Mandi Voice Assistant")
+    print("     KisanAwaaz")
     print("   Speak in Hindi — hear prices instantly")
     print("=" * 52)
 
@@ -118,7 +118,7 @@ def main():
         try:
             input("\n▶  Press Enter to speak  (Ctrl+C to quit) … ")
         except KeyboardInterrupt:
-            print("\n 🙏  धन्यवाद!")
+            print("\n   धन्यवाद!")
             break
 
         wav = record_from_mic()
