@@ -58,7 +58,7 @@ try:
         print(f"Tool called: {tc.function.name}")
         print(f"Arguments: {tc.function.arguments}")
     else:
-        print(f"\n⚠️  No tool call made. Direct response: {message.content}")
+        print(f"\n  No tool call made. Direct response: {message.content}")
         print("Sarvam-m may not support tool calling.")
 
 except Exception as e:

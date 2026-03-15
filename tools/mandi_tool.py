@@ -187,7 +187,7 @@ def _load_csv():
     if _csv_df is not None:
         return _csv_df
     if not os.path.exists(CSV_PATH):
-        print(f"⚠️  CSV not found at {CSV_PATH}")
+        print(f"  CSV not found at {CSV_PATH}")
         return None
     try:
         df = pd.read_csv(CSV_PATH)
@@ -209,7 +209,7 @@ def _search_csv(commodity_en: str, market_en: str) -> dict | None:
     df = _load_csv()
     if df is None:
         return None
-    print(f"📂  Searching CSV: commodity='{commodity_en}', market='{market_en}'")
+    print(f"  Searching CSV: commodity='{commodity_en}', market='{market_en}'")
     matches = df[df["commodity"].str.lower() == commodity_en.lower()]
     if matches.empty:
         matches = df[df["commodity"].str.lower().str.contains(commodity_en.lower(), na=False)]
@@ -257,10 +257,10 @@ def _sarvam_translate(hindi_text: str) -> str:
             timeout=10
         )
         translated = resp.json().get("translated_text", "").strip()
-        print(f"🌐  Sarvam Translate: '{hindi_text}' → '{translated}'")
+        print(f"  Sarvam Translate: '{hindi_text}' → '{translated}'")
         return translated or hindi_text.capitalize()
     except Exception as e:
-        print(f"⚠️  Sarvam Translate failed: {e}")
+        print(f"  Sarvam Translate failed: {e}")
         return hindi_text.capitalize()
 
 
@@ -276,7 +276,7 @@ def _translate_commodity(commodity: str) -> str:
         return translated
 
     # Step 2: Fallback to COMMODITY_MAP
-    print(f"⚠️  Sarvam Translate failed — falling back to COMMODITY_MAP")
+    print(f"  Sarvam Translate failed — falling back to COMMODITY_MAP")
     en = COMMODITY_MAP.get(commodity.strip())
     if en:
         return en
@@ -342,7 +342,7 @@ def get_mandi_price(commodity: str, market: str, state: str) -> dict:
     print(f"  Fallback: fetched {len(records)} records")
 
     if not records:
-        print(f"⚠️  API returned nothing — trying CSV backup …")
+        print(f"  API returned nothing — trying CSV backup …")
         csv_result = _search_csv(commodity_en, market_en)
         if csv_result:
             return csv_result
@@ -356,11 +356,11 @@ def get_mandi_price(commodity: str, market: str, state: str) -> dict:
                 best_score, best_record = score, record
 
         if best_record and best_score >= 0.65:
-            print(f"🔍  Fuzzy match: '{best_record.get('market')}' "
+            print(f"  Fuzzy match: '{best_record.get('market')}' "
                   f"(score: {best_score:.2f})")
             return _build_result(best_record)
 
-        print(f"⚠️  Market not found in API — trying CSV backup …")
+        print(f"  Market not found in API — trying CSV backup …")
         csv_result = _search_csv(commodity_en, market_en)
         if csv_result:
             return csv_result
@@ -373,7 +373,7 @@ def get_mandi_price(commodity: str, market: str, state: str) -> dict:
 
     # No market specified — return first available record
     if records:
-        print(f"ℹ️  No market specified — returning first available record")
+        print(f"  No market specified — returning first available record")
         return _build_result(records[0])
 
     return {"error": "No mandi data found", "commodity": commodity_en}

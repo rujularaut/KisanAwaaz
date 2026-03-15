@@ -107,7 +107,7 @@ def _extract_json(text: str) -> dict | None:
         if json_match:
             return json.loads(json_match.group())
     except Exception as e:
-        print(f"⚠️  JSON parse error: {e}")
+        print(f"  JSON parse error: {e}")
     return None
 
 
@@ -130,11 +130,11 @@ def _call_sarvam(messages: list) -> str:
             )
             result = resp.json()
             if "choices" not in result:
-                print(f"⚠️  Unexpected response: {result}")
+                print(f"  Unexpected response: {result}")
                 continue
             return result["choices"][0]["message"]["content"]
         except requests.exceptions.Timeout:
-            print(f"⏱️  Attempt {attempt} timed out")
+            print(f"  Attempt {attempt} timed out")
         except Exception as e:
             print(f"❌  Attempt {attempt} error: {e}")
     return ""
@@ -150,7 +150,7 @@ def process_farmer_query(transcript: str) -> dict:
     """
 
     # ── MCP Step 1: Tool selection ────────────────────────────────────────
-    print("🤖  MCP Step 1: Asking Sarvam-m which tool to call …")
+    print("  MCP Step 1: Asking Sarvam-m which tool to call …")
 
     tool_selection_prompt = f"""{TOOLS_DESCRIPTION}
 
@@ -162,21 +162,21 @@ Respond with ONLY the JSON tool call. No explanation. No extra text."""
         {"role": "user", "content": tool_selection_prompt}
     ])
 
-    print(f"📝  Raw tool response: {raw_tool_response[:300]}")
+    print(f"  Raw tool response: {raw_tool_response[:300]}")
 
     # ── Parse tool call ───────────────────────────────────────────────────
     tool_call = _extract_json(raw_tool_response)
     tool_name = tool_call.get("tool") if tool_call else None
-    print(f"🔧  MCP Step 2: Tool chosen → {tool_name} | Args: {tool_call}")
+    print(f"  MCP Step 2: Tool chosen → {tool_name} | Args: {tool_call}")
 
     # ── MCP Step 3: Execute tool ──────────────────────────────────────────
     tool_result = {}
 
     if tool_name in ("get_mandi_price", "get_best_mandi"):
-        print(f"⚙️   MCP Step 3: Executing tool …")
+        print(f"   MCP Step 3: Executing tool …")
         tool_result = execute_tool(tool_name, tool_call)
     else:
-        print(f"⚠️  No valid tool selected")
+        print(f"  No valid tool selected")
         return {
             "response_text": "कृपया फसल और मंडी का नाम बताएं।",
             "mandi_data":    {},
@@ -184,7 +184,7 @@ Respond with ONLY the JSON tool call. No explanation. No extra text."""
         }
 
     # ── MCP Step 4: Generate Hindi response ───────────────────────────────
-    print("🤖  MCP Step 4: Generating Hindi response …")
+    print("  MCP Step 4: Generating Hindi response …")
 
     hindi_commodity = tool_call.get("commodity", "")
 
@@ -209,7 +209,7 @@ No English. No extra text."""
 
         # ── Fallback: if LLM returns empty, build response directly ──────
         if not response_text:
-            print("⚠️  Empty LLM response — using direct fallback response")
+            print("  Empty LLM response — using direct fallback response")
             response_text = _build_fallback_response(tool_result, hindi_commodity)
 
     print(f"✅  MCP Step 5: Final Hindi response → {response_text}")

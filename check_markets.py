@@ -42,7 +42,7 @@ def find_markets_for_commodity(commodity: str):
     for r in sorted(all_records, key=lambda x: x.get("state","")):
         print(f"  {r.get('market',''):<40} {r.get('state',''):<20} ₹{r.get('modal_price','')}")
 
-    print(f"\n💬  Sample Hindi queries you can ask:")
+    print(f"\n  Sample Hindi queries you can ask:")
     print("-"*65)
     for r in all_records[:10]:
         market = r.get("market", "").replace(" APMC","").replace("(F&V)","").strip()

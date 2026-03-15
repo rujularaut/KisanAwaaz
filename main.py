@@ -50,7 +50,7 @@ async def voice_query(audio: UploadFile = File(...)):
     timings     = {}
 
     print("\n" + "="*55)
-    print("📥  New voice query received")
+    print("  New voice query received")
     print("="*55)
 
     # ── 1. Save temp audio ───────────────────────────────────────────────
@@ -63,8 +63,8 @@ async def voice_query(audio: UploadFile = File(...)):
     asr_result = transcribe_audio(file_path)
     timings["asr"] = round(time.time() - t, 2)
     transcript = asr_result.get("transcript", "")
-    print(f"👂  ASR         : {transcript!r}")
-    print(f"⏱️   ASR time    : {timings['asr']}s")
+    print(f"  ASR         : {transcript!r}")
+    print(f"  ASR time    : {timings['asr']}s")
 
     if not transcript:
         response_text = "माफ कीजिए, आपकी आवाज़ समझ नहीं आई। कृपया दोबारा बोलें।"
@@ -85,21 +85,21 @@ async def voice_query(audio: UploadFile = File(...)):
     tool_called   = result.get("tool_called", "none")
     mandi_ok      = "error" not in mandi_data and bool(mandi_data)
 
-    print(f"🔧  Tool called : {tool_called}")
-    print(f"📊  Mandi data  : {'✅ found' if mandi_ok else '❌ not found'}")
-    print(f"📅  Price date  : {mandi_data.get('date', 'N/A')}")
-    print(f"💬  Response    : {response_text}")
-    print(f"⏱️   MCP time    : {timings['mcp']}s")
+    print(f"  Tool called : {tool_called}")
+    print(f"  Mandi data  : {'✅ found' if mandi_ok else '❌ not found'}")
+    print(f"  Price date  : {mandi_data.get('date', 'N/A')}")
+    print(f"  Response    : {response_text}")
+    print(f"   MCP time    : {timings['mcp']}s")
 
     # ── 4. TTS ───────────────────────────────────────────────────────────
     t = time.time()
     try:
         audio_bytes = generate_speech_bytes(response_text)
         timings["tts"] = round(time.time() - t, 2)
-        print(f"⏱️   TTS time    : {timings['tts']}s")
+        print(f"   TTS time    : {timings['tts']}s")
     except Exception as e:
         timings["tts"] = round(time.time() - t, 2)
-        print(f"⚠️  TTS Error   : {e}")
+        print(f"  TTS Error   : {e}")
         audio_bytes = b""
 
     _print_summary(timings, total_start, success=mandi_ok)
@@ -109,7 +109,7 @@ async def voice_query(audio: UploadFile = File(...)):
 def _print_summary(timings: dict, total_start: float, success: bool, reason: str = ""):
     total = round(time.time() - total_start, 2)
     print("\n" + "-"*55)
-    print("📊  PERFORMANCE SUMMARY")
+    print("  PERFORMANCE SUMMARY")
     print("-"*55)
     for step, t in timings.items():
         bar = "█" * int(t * 5)
