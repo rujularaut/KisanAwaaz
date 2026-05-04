@@ -1,4 +1,4 @@
-\# Mandi Voice Assistant 🌾
+ # Mandi Voice Assistant 
 
 
 
@@ -6,7 +6,7 @@ Voice-based assistant for Indian farmers to get real-time mandi prices in Hindi.
 
 
 
-\## Setup
+## Setup
 
 1\. Clone the repo
 
