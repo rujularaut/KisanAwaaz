@@ -103,7 +103,8 @@ Designed for accessibility and rural use cases
 
 Example farmer query:
 
-``` बड़वानी मंडी में टमाटर का भाव क्या है?
+```
+बड़वानी मंडी में टमाटर का भाव क्या है?
 ```
 
 System flow:
@@ -194,7 +195,7 @@ Environment Management	python-dotenv
 
 
 ## How It Works
-# 1. Voice Input
+### 1. Voice Input
 
 The farmer speaks a query in Hindi.
 
@@ -204,7 +205,7 @@ Example:
 ```
 The system records the audio through a microphone.
 
-# 2. Speech-to-Text
+### 2. Speech-to-Text
 
 The recorded Hindi audio is passed to Sarvam AI's ASR model.
 
@@ -215,7 +216,7 @@ Example:
 इंदौर मंडी में प्याज का भाव क्या है?
 ```
 
-# 3. Query Understanding
+### 3. Query Understanding
 
 The system identifies important information from the query:
 
@@ -230,7 +231,7 @@ Mandi: इंदौर
 Intent: Get mandi price
 ```
 
-# 4. Translation
+### 4. Translation
 
 If required, Hindi commodity and mandi names are translated or normalized for API compatibility.
 
@@ -240,7 +241,7 @@ Example:
 इंदौर → Indore
 ```
 
-# 5. MCP-Style Tool Calling
+### 5. MCP-Style Tool Calling
 
 The system selects the correct tool based on the user's query.
 
@@ -258,7 +259,7 @@ If the farmer asks where they can get the best price, the system uses:
 get_best_mandi
 ```
 
-# 6. Data Fetching
+### 6. Data Fetching
 
 The selected tool queries the Agmarknet API from data.gov.in.
 
@@ -271,13 +272,13 @@ Maximum price
 Modal price
 Arrival date
 
-# 7. CSV Fallback
+### 7. CSV Fallback
 
 If the live API is unavailable or fails, the system uses a local CSV backup.
 
 This improves reliability and prevents the system from completely failing during API downtime.
 
-# 8. Hindi Response Generation
+### 8. Hindi Response Generation
 
 The system creates a natural Hindi response.
 
@@ -286,11 +287,11 @@ Example:
 इंदौर मंडी में प्याज का मॉडल भाव 1800 रुपये प्रति क्विंटल है।
 ```
 
-# 9. Text-to-Speech
+### 9. Text-to-Speech
 
 The Hindi response is converted into speech using Sarvam AI TTS.
 
-# 10. Spoken Output
+### 10. Spoken Output
 
 The farmer hears the answer in Hindi.
 
@@ -322,12 +323,12 @@ KisanAwaaz/
 ```
 
 ## Installation and Setup
-# 1. Clone the Repository
+### 1. Clone the Repository
 ```
 git clone https://github.com/rujularaut/KisanAwaaz.git
 cd KisanAwaaz
 ```
-# 2. Create a Virtual Environment
+### 2. Create a Virtual Environment
 ```
 python -m venv venv
 ```
@@ -341,7 +342,7 @@ For macOS/Linux:
 ```
 source venv/bin/activate
 ```
-# 3. Install Dependencies
+### 3. Install Dependencies
 ```
 pip install -r requirements.txt
 ```
@@ -421,7 +422,7 @@ KisanAwaaz uses an MCP-style tool calling layer.
 
 This means the AI system does not directly answer everything by itself. Instead, it decides which tool should be used to get accurate real-time data.
 
-# Tool 1: get_mandi_price
+### Tool 1: get_mandi_price
 
 Used when the user asks for the price of a commodity in a specific mandi.
 
@@ -433,7 +434,7 @@ Expected tool:
 ```
 get_mandi_price(commodity="Tomato", market="Badwani")
 ```
-# Tool 2: get_best_mandi
+### Tool 2: get_best_mandi
 
 Used when the user asks where the best price is available.
 
@@ -476,15 +477,16 @@ API fetching
 Response generation
 Text-to-speech conversion
 Audio playback
-Cost Estimation
+
+## Cost Estimation
 
 The estimated cost per query is approximately:
-
+```
 8.5 paise per query
-
+```
 This makes the solution cost-effective and scalable for large-scale rural deployment.
 
-Use Cases
+## Use Cases
 
 KisanAwaaz can be useful for:
 
@@ -496,7 +498,8 @@ WhatsApp voice bot extensions
 Government agriculture support services
 NGOs working in rural digital inclusion
 Mandi price awareness campaigns
-Future Scope
+
+## Future Scope
 
 Possible improvements include:
 
@@ -511,6 +514,7 @@ Multilingual speech support
 SMS backup for low-network regions
 Dashboard for mandi price analytics
 Integration with weather and crop advisory APIs
-Built At
+
+## Built At
 
 KisanAwaaz was built at SheInspires 2.0, an all-women AI Hackathon organized by Zensar, RPG Foundation, and MIT ADT University in March 2026.
