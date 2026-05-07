@@ -11,6 +11,12 @@ The system understands the spoken query, fetches live mandi price data, generate
 The goal of KisanAwaaz is to make government-published agricultural market data accessible to farmers who may not be comfortable with reading, typing, using apps, or navigating online portals.
 
 ---
+## Demo Video
+
+Watch the project voice-over demo here:
+
+[Watch Demo on YouTube](https://youtu.be/leU39JYUUm8)
+
 
 ## Table of Contents
 
